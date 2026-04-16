@@ -10,12 +10,24 @@ const bookRating = document.getElementById('book-rating');
 const booksList = document.getElementById('books-list');
 const cancelBookEdit = document.getElementById('cancel-book-edit');
 
+function updateRatingState() {
+  const isRead = bookStatus.value === 'Lido';
+
+  bookRating.disabled = !isRead;
+  bookRating.required = isRead;
+
+  if (!isRead) {
+    bookRating.value = '';
+  }
+}
+
 function clearBookForm() {
   if (!bookForm) return;
 
   bookForm.reset();
   bookId.value = '';
   cancelBookEdit.classList.add('hidden');
+  updateRatingState();
 }
 
 async function loadBooks() {
@@ -36,7 +48,7 @@ async function loadBooks() {
         <p><strong>Autor:</strong> ${book.author}</p>
         <p><strong>Gênero:</strong> ${book.genre}</p>
         <p><strong>Status:</strong> ${book.status}</p>
-        <p><strong>Nota:</strong> ${book.rating}</p>
+        <p><strong>Nota:</strong> ${book.rating ?? 'Sem nota'}</p>
         <div class="entry-buttons">
           <button onclick="editBook('${book._id}')">Editar</button>
           <button onclick="deleteBook('${book._id}')">Excluir</button>
@@ -70,7 +82,12 @@ window.editBook = async function (id) {
     bookAuthor.value = book.author;
     bookGenre.value = book.genre;
     bookStatus.value = book.status;
-    bookRating.value = book.rating;
+
+    updateRatingState();
+
+    if (book.status === 'Lido' && book.rating !== null && book.rating !== undefined) {
+      bookRating.value = book.rating;
+    }
 
     cancelBookEdit.classList.remove('hidden');
   } catch (error) {
@@ -89,6 +106,10 @@ window.deleteBook = async function (id) {
   }
 };
 
+if (bookStatus) {
+  bookStatus.addEventListener('change', updateRatingState);
+}
+
 if (bookForm) {
   bookForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -98,7 +119,7 @@ if (bookForm) {
       author: bookAuthor.value,
       genre: bookGenre.value,
       status: bookStatus.value,
-      rating: Number(bookRating.value)
+      rating: bookStatus.value === 'Lido' ? Number(bookRating.value) : null
     };
 
     try {
@@ -117,4 +138,5 @@ if (cancelBookEdit) {
   });
 }
 
+updateRatingState();
 loadBooks();
