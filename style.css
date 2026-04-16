@@ -435,3 +435,12 @@ body.light-mode .entry-buttons button:last-child:hover {
     width: 100%;
   }
 }
+
+.input-group-custom select {
+  color: var(--text);
+}
+
+.input-group-custom select option {
+  background: #ffffff;
+  color: #221b3a;
+}
