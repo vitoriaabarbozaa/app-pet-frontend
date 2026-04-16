@@ -1,88 +1,120 @@
-const PET_API_URL = 'https://petapp-backend-a2pr.onrender.com/api/pets';
+const BOOK_API_URL = 'https://app-pet-backend.onrender.com/api/books';
 
-const petForm = document.getElementById('pet-form');
-const petName = document.getElementById('pet-name');
-const petBreed = document.getElementById('pet-breed');
-const petAge = document.getElementById('pet-age');
-const petsList = document.getElementById('pets-list');
+const bookForm = document.getElementById('book-form');
+const bookId = document.getElementById('book-id');
+const bookTitle = document.getElementById('book-title');
+const bookAuthor = document.getElementById('book-author');
+const bookGenre = document.getElementById('book-genre');
+const bookStatus = document.getElementById('book-status');
+const bookRating = document.getElementById('book-rating');
+const booksList = document.getElementById('books-list');
+const cancelBookEdit = document.getElementById('cancel-book-edit');
 
-let editingPetId = null;
+function clearBookForm() {
+  if (!bookForm) return;
 
-async function loadPets() {
-  if (!petsList) return;
+  bookForm.reset();
+  bookId.value = '';
+  cancelBookEdit.classList.add('hidden');
+}
+
+async function loadBooks() {
+  if (!booksList) return;
 
   try {
-    const response = await fetch(PET_API_URL);
-    if (!response.ok) throw new Error('Erro ao carregar pets');
+    const response = await fetch(BOOK_API_URL);
+    const books = await response.json();
 
-    const pets = await response.json();
-    petsList.innerHTML = '';
-
-    if (!pets.length) {
-      petsList.innerHTML = '<li>Nenhum pet cadastrado.</li>';
+    if (!books.length) {
+      booksList.innerHTML = '<p>Nenhum livro cadastrado.</p>';
       return;
     }
 
-    pets.forEach((pet) => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <strong>${pet.name}</strong> - ${pet.breed} - ${pet.age} anos
-        <button onclick="editPet('${pet._id}', '${pet.name}', '${pet.breed}', ${pet.age})">Editar</button>
-        <button onclick="deletePet('${pet._id}')">Excluir</button>
-      `;
-      petsList.appendChild(li);
-    });
+    booksList.innerHTML = books.map(book => `
+      <div class="entry-item">
+        <h3>${book.title}</h3>
+        <p><strong>Autor:</strong> ${book.author}</p>
+        <p><strong>Gênero:</strong> ${book.genre}</p>
+        <p><strong>Status:</strong> ${book.status}</p>
+        <p><strong>Nota:</strong> ${book.rating}</p>
+        <div class="entry-buttons">
+          <button onclick="editBook('${book._id}')">Editar</button>
+          <button onclick="deleteBook('${book._id}')">Excluir</button>
+        </div>
+      </div>
+    `).join('');
   } catch (error) {
-    console.error('Erro ao carregar pets:', error);
+    console.error('Erro ao carregar livros:', error);
   }
 }
 
-if (petForm) {
-  petForm.addEventListener('submit', async (e) => {
+async function saveBook(data) {
+  const id = bookId.value;
+  const url = id ? `${BOOK_API_URL}/${id}` : BOOK_API_URL;
+  const method = id ? 'PUT' : 'POST';
+
+  await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+}
+
+window.editBook = async function (id) {
+  try {
+    const response = await fetch(`${BOOK_API_URL}/${id}`);
+    const book = await response.json();
+
+    bookId.value = book._id;
+    bookTitle.value = book.title;
+    bookAuthor.value = book.author;
+    bookGenre.value = book.genre;
+    bookStatus.value = book.status;
+    bookRating.value = book.rating;
+
+    cancelBookEdit.classList.remove('hidden');
+  } catch (error) {
+    console.error('Erro ao buscar livro:', error);
+  }
+};
+
+window.deleteBook = async function (id) {
+  if (!confirm('Deseja excluir este livro?')) return;
+
+  try {
+    await fetch(`${BOOK_API_URL}/${id}`, { method: 'DELETE' });
+    loadBooks();
+  } catch (error) {
+    console.error('Erro ao excluir livro:', error);
+  }
+};
+
+if (bookForm) {
+  bookForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const petData = {
-      name: petName.value,
-      breed: petBreed.value,
-      age: Number(petAge.value)
+    const data = {
+      title: bookTitle.value,
+      author: bookAuthor.value,
+      genre: bookGenre.value,
+      status: bookStatus.value,
+      rating: Number(bookRating.value)
     };
 
     try {
-      const response = await fetch(
-        editingPetId ? `${PET_API_URL}/${editingPetId}` : PET_API_URL,
-        {
-          method: editingPetId ? 'PUT' : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(petData)
-        }
-      );
-
-      if (!response.ok) throw new Error('Erro ao salvar pet');
-
-      editingPetId = null;
-      petForm.reset();
-      loadPets();
+      await saveBook(data);
+      clearBookForm();
+      loadBooks();
     } catch (error) {
-      console.error('Erro ao salvar pet:', error);
+      console.error('Erro ao salvar livro:', error);
     }
   });
 }
 
-window.editPet = function (id, name, breed, age) {
-  petName.value = name;
-  petBreed.value = breed;
-  petAge.value = age;
-  editingPetId = id;
-};
+if (cancelBookEdit) {
+  cancelBookEdit.addEventListener('click', () => {
+    clearBookForm();
+  });
+}
 
-window.deletePet = async function (id) {
-  try {
-    const response = await fetch(`${PET_API_URL}/${id}`, { method: 'DELETE' });
-    if (!response.ok) throw new Error('Erro ao excluir pet');
-    loadPets();
-  } catch (error) {
-    console.error('Erro ao excluir pet:', error);
-  }
-};
-
-loadPets();
+loadBooks();
